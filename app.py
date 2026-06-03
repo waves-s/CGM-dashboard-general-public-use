@@ -204,12 +204,7 @@ def authenticate(email: str, password: str, region: str):
         st.session_state.session_start_time = datetime.now(CALGARY_TZ)  # NEW: Track session start
         if patients:
             st.session_state.selected_patient = patients[0]
-            # NEW: Automatically fetch data after successful login
-            try:
-                fetch_data(patients[0])
-            except Exception as e:
-                print(f"DEBUG: Auto-fetch failed after login: {e}")
-                # Don't fail login, but log the error for debugging
+            # Note: Data will be fetched by auto-refresh logic on next page load
         return True, None
     except AuthenticationError as e:
         error_msg = "Invalid email or password. Please check your credentials."
