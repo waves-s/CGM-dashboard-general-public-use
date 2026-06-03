@@ -207,8 +207,9 @@ def authenticate(email: str, password: str, region: str):
             # NEW: Automatically fetch data after successful login
             try:
                 fetch_data(patients[0])
-            except Exception:
-                pass  # Data fetch can fail silently; user can refresh manually
+            except Exception as e:
+                print(f"DEBUG: Auto-fetch failed after login: {e}")
+                # Don't fail login, but log the error for debugging
         return True, None
     except AuthenticationError as e:
         error_msg = "Invalid email or password. Please check your credentials."
