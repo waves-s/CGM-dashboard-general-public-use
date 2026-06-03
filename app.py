@@ -150,6 +150,8 @@ for key, default in {
     "show_last_24h": True,    # Default: show last 24h on first load
     "auto_login_attempted": False,  # Only try auto-login once per session
     "rate_limit_until": 0,            # Timestamp when rate limit expires
+    "user_email": None,      # NEW: Store logged-in user email
+    "session_start_time": None,  # NEW: Track session start time
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -183,6 +185,7 @@ def glucose_status(value_mg: float, low_mg: float, high_mg: float):
         return "IN RANGE", "glucose-normal", "badge-normal"
 
 def authenticate(email: str, password: str, region: str):
+    """Enhanced authentication with better error handling and automatic data fetching."""
     try:
         api_url = APIUrl[region]
         api = PyLibreLinkUp(email=email, password=password, api_url=api_url)
@@ -195,17 +198,26 @@ def authenticate(email: str, password: str, region: str):
         st.session_state.api = api
         st.session_state.authenticated = True
         st.session_state.patients = patients
+        st.session_state.user_email = email  # NEW: Store user email
+        st.session_state.session_start_time = datetime.now(CALGARY_TZ)  # NEW: Track session start
         if patients:
             st.session_state.selected_patient = patients[0]
+            # NEW: Automatically fetch data after successful login
+            try:
+                fetch_data(patients[0])
+            except Exception:
+                pass  # Data fetch can fail silently; user can refresh manually
         return True, None
     except AuthenticationError as e:
-        return False, f"Authentication failed: {e}"
+        error_msg = "Invalid email or password. Please check your credentials."
+        return False, error_msg
     except PrivacyPolicyError:
         return False, "Please accept the Privacy Policy in the LibreLink app first."
     except TermsOfUseError:
         return False, "Please accept the Terms of Use in the LibreLink app first."
     except Exception as e:
-        return False, f"Unexpected error: {e}"
+        error_msg = f"Connection error: {str(e)[:100]}"
+        return False, error_msg
 
 def fetch_data(patient):
     try:
